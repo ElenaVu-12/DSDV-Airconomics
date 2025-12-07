@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Air Quality – Bubble Chart</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+ 
+</head>
+<body>
+  <header class="topbar">
+    <h1>Air Quality vs GDP (PM2.5)</h1>
+    <div class="controls">
+      <label>Year:
+        <input id="yearSlider" type="range" min="2000" max="2021" value="2010" step="1">
+        <span id="yearLabel">2010</span>
+      </label>
+      <button id="playBtn">▶ Play</button>
+      <select id="regionFilter">
+        <option value="all">All regions</option>
+        <option>Asia</option><option>Europe</option><option>Africa</option><option>Americas</option><option>Oceania</option>
+      </select>
+      <input id="searchBox" type="search" placeholder="Search country…"/>
+      <label class="upload">
+        <input id="fileInput" type="file" accept=".csv" hidden>
+        <span>Upload CSV</span>
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <div id="chart"></div>
+    <div id="tooltip" class="tooltip" style="opacity:0;"></div>
+  </main>
+
+  <footer class="note">
+    Tip: Upload your merged CSV with columns:
+    <code>country,region,year,gdp_per_capita,pm25,population</code>
+  </footer>
+
+  <script src="./dataPrep.js"></script>
+  <script src="./bubbleChart.js"></script>
+</body>
+</html>
