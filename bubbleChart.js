@@ -7,6 +7,11 @@ let currentYearIndex = 0;
 let isPlaying = false;
 let playTimer = null;
 
+// Global domain cho toàn bộ data (tất cả năm, tất cả nước)
+let GLOBAL_GDP_MIN, GLOBAL_GDP_MAX;
+let GLOBAL_PM25_MAX;
+let GLOBAL_POP_MAX;
+
 const margin = { top: 40, right: 40, bottom: 60, left: 80 };
 
 const tooltip = d3.select("#tooltip")
@@ -14,11 +19,33 @@ const tooltip = d3.select("#tooltip")
   .style("pointer-events", "none")
   .style("opacity", 0);
 
+// ======= HÀM TẠO SCALE GLOBAL (dùng cố định cho mọi năm) =======
+function makeGlobalScales(width, height) {
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const x = d3.scaleLog()
+    .domain([GLOBAL_GDP_MIN, GLOBAL_GDP_MAX])
+    .range([0, innerWidth])           // vì chartG đã translate(margin.left)
+    .nice();
+
+  const y = d3.scaleLinear()
+    .domain([0, GLOBAL_PM25_MAX])
+    .range([innerHeight, 0])          // y đi từ dưới lên trên
+    .nice();
+
+  const r = d3.scaleSqrt()
+    .domain([0, GLOBAL_POP_MAX])
+    .range([2, 40]);
+
+  return { x, y, r };
+}
+
 // ======= KHỞI TẠO TỪ DATA =======
 function initBubbleChart(loadedCountries) {
   countries = loadedCountries;
 
-  // 1. lấy danh sách năm từ gdp của country đầu tiên
+  // 1. Lấy danh sách năm từ gdp của country đầu tiên
   allYears = Object.keys(countries[0].gdp)
     .map(d => +d)
     .sort((a, b) => a - b);
@@ -33,21 +60,19 @@ function initBubbleChart(loadedCountries) {
     .attr("width", width)
     .attr("height", height);
 
-  chartG = svg.append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
-
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // 2. data năm đầu tiên + scales
-  const firstYear = allYears[currentYearIndex];
-  let dataForYear = getDataForYear(countries, firstYear);
-  let scales = getScales(dataForYear, width, height, margin);
-  xScale = scales.xScale;
-  yScale = scales.yScale;
-  rScale = scales.rScale;
+  chartG = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // 3. axes
+  // 2. Tạo scales global (dựa trên GLOBAL_* đã tính trong loadData().then)
+  const scales = makeGlobalScales(width, height);
+  xScale = scales.x;
+  yScale = scales.y;
+  rScale = scales.r;
+
+  // 3. Vẽ axes (chỉ vẽ 1 lần)
   xAxisG = chartG.append("g")
     .attr("class", "x-axis")
     .attr("transform", `translate(0,${innerHeight})`)
@@ -57,7 +82,7 @@ function initBubbleChart(loadedCountries) {
     .attr("class", "y-axis")
     .call(d3.axisLeft(yScale));
 
-  // 4. labels
+  // 4. Labels
   chartG.append("text")
     .attr("class", "x-label")
     .attr("x", innerWidth)
@@ -72,41 +97,23 @@ function initBubbleChart(loadedCountries) {
     .attr("text-anchor", "start")
     .text("PM2.5 (µg/m³)");
 
-  // 5. vẽ lần đầu
+  // 5. Vẽ lần đầu
+  const firstYear = allYears[currentYearIndex];
   renderBubble(firstYear);
 
-  // 6. gắn slider + play/pause
+  // 6. Gắn slider + play/pause
   initYearControls();
 }
 
 // ======= VẼ / UPDATE BUBBLE CHO 1 NĂM =======
 function renderBubble(year) {
-  const width = +svg.attr("width");
-  const height = +svg.attr("height");
-
   const dataForYear = getDataForYear(countries, year);
 
   d3.select("#yearLabel").text(year);
 
-  // tính lại scales mỗi năm (hoặc có thể fix domain nếu muốn)
-  const scales = getScales(dataForYear, width, height, margin);
-  xScale = scales.xScale;
-  yScale = scales.yScale;
-  rScale = scales.rScale;
-
-  const innerHeight = height - margin.top - margin.bottom;
-
-  xAxisG
-    .transition().duration(500)
-    .call(d3.axisBottom(xScale).ticks(10, "~s"));
-
-  yAxisG
-    .transition().duration(500)
-    .call(d3.axisLeft(yScale));
-
   // JOIN data
   const dots = chartG.selectAll(".dot")
-    .data(dataForYear, d => d.country);
+    .data(dataForYear, d => d.country); // key = tên nước
 
   // ENTER
   const dotsEnter = dots.enter().append("circle")
@@ -114,7 +121,7 @@ function renderBubble(year) {
     .attr("cx", d => xScale(d.gdp || 1))
     .attr("cy", d => yScale(d.pm25 || 0))
     .attr("r", 0)
-    .attr("fill", "#4e79a7")  // tạm: 1 màu, sau sẽ thay bằng colorScale(region)
+    .attr("fill", "#4e79a7")  // tạm 1 màu, sau có thể dùng colorScale(region)
     .attr("opacity", 0.8)
     .on("mousemove", (event, d) => {
       tooltip
@@ -187,8 +194,26 @@ function initYearControls() {
 
 // ======= ENTRY POINT =======
 loadData()
-  .then((countries) => {
-    console.log("Loaded countries:", countries.length);
-    initBubbleChart(countries);
+  .then((loadedCountries) => {
+    console.log("Loaded countries:", loadedCountries.length);
+
+    // Tính GLOBAL DOMAIN từ toàn bộ dữ liệu (tất cả năm của tất cả nước)
+    const flat = [];
+    loadedCountries.forEach(c => {
+      Object.keys(c.gdp).forEach(year => {
+        flat.push({
+          gdp: c.gdp[year],
+          pm25: c.pm25[year],
+          population: c.pop[year]
+        });
+      });
+    });
+
+    GLOBAL_GDP_MIN = d3.min(flat, d => d.gdp > 0 ? d.gdp : null);
+    GLOBAL_GDP_MAX = d3.max(flat, d => d.gdp);
+    GLOBAL_PM25_MAX = d3.max(flat, d => d.pm25);
+    GLOBAL_POP_MAX = d3.max(flat, d => d.population);
+
+    initBubbleChart(loadedCountries);
   })
   .catch(err => console.error("Error init bubble chart:", err));
