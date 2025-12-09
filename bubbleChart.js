@@ -46,7 +46,7 @@ function initBubbleChart(loadedCountries) {
   countries = loadedCountries;
 
   // 1. Lấy danh sách năm từ gdp của country đầu tiên
-  allYears = Object.keys(countries[0].gdp)
+  allYears = Object.keys(countries[0].pm25)
     .map(d => +d)
     .sort((a, b) => a - b);
   currentYearIndex = 0;
@@ -123,29 +123,36 @@ function renderBubble(year) {
     .attr("r", 0)
     .attr("fill", "#4e79a7")  // tạm 1 màu, sau có thể dùng colorScale(region)
     .attr("opacity", 0.8)
-    .on("mousemove", (event, d) => {
-      tooltip
-        .style("opacity", 1)
-        .style("left", (event.pageX + 12) + "px")
-        .style("top", (event.pageY + 12) + "px")
-        .html(
-          `<b>${d.country}</b><br/>
-           PM2.5: ${d.pm25?.toFixed(1)} µg/m³<br/>
-           GDP pc: ${d3.format(",")(d.gdp)} USD<br/>
-           Population: ${d3.format(",")(d.population)}<br/>
-           Year: ${year}`
-        );
-    })
-    .on("mouseleave", () => {
-      tooltip.style("opacity", 0);
-    });
 
+    // Gộp ENTER + UPDATE
+    const dotsMerged = dotsEnter.merge(dots);
+
+    // Gán tooltip handler cho cả merged selection
+    dotsMerged
+      .on("mousemove", (event, d) => {
+        tooltip
+          .style("opacity", 1)
+          .style("left", (event.pageX + 12) + "px")
+          .style("top", (event.pageY + 12) + "px")
+          .html(
+            `<b>${d.country}</b><br/>
+            PM2.5: ${d.pm25?.toFixed(1)} µg/m³<br/>
+            GDP pc: ${d3.format(",")(d.gdp)} USD<br/>
+            Population: ${d3.format(",")(d.population)}<br/>
+            Year: ${year}`
+          );
+      })
+      .on("mouseleave", () => {
+        tooltip.style("opacity", 0);
+      });
+
+  // Animation radius cho ENTER
   dotsEnter
     .transition().duration(500)
     .attr("r", d => rScale(d.population || 0));
 
-  // UPDATE
-  dots
+  // UPDATE radius
+  dotsMerged
     .transition().duration(500)
     .attr("cx", d => xScale(d.gdp || 1))
     .attr("cy", d => yScale(d.pm25 || 0))
@@ -179,16 +186,26 @@ function initYearControls() {
       isPlaying = true;
       playBtn.text("Pause");
       playTimer = setInterval(() => {
-        currentYearIndex = (currentYearIndex + 1) % allYears.length;
-        const y = allYears[currentYearIndex];
-        slider.property("value", y);
-        renderBubble(y);
-      }, 900);
-    } else {
-      isPlaying = false;
-      playBtn.text("▶ Play");
-      clearInterval(playTimer);
-    }
+        // nếu chưa tới năm cuối thì tăng tiếp
+        if (currentYearIndex < allYears.length -1) {
+          currentYearIndex++;
+          const y = allYears[currentYearIndex];
+          slider.property("value", y);
+          renderBubble(y);
+        } else {
+          // tới năm cuối rồi autostop
+          clearInterval(playTimer);
+          isPlaying = false;
+          playBtn.text("▶ Play");
+        }
+    }, 900);
+
+  } else {
+    // User bấm Pause giữa chừng
+    isPlaying = false;
+    playBtn.text("▶ Play");
+    clearInterval(playTimer);
+  }
   });
 }
 
