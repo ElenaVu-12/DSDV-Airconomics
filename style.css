@@ -9,3 +9,16 @@
 .dot.highlight{stroke:#000;stroke-width:2px}
 .axis path,.axis line{stroke:#ccc}
 .legend{font-size:12px;fill:#555}
+.year-watermark {
+    font-weight: 700;
+    letter-spacing: 4px;
+}
+.grid line {
+  stroke: #e5e5e5;
+  stroke-opacity: 0.5;
+  shape-rendering: crispEdges;
+}
+
+.grid path {
+  display: none; /* ẩn trục của grid, chỉ giữ line */
+}

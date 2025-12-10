@@ -6,6 +6,7 @@ let allYears = [];
 let currentYearIndex = 0;
 let isPlaying = false;
 let playTimer = null;
+let yearWatermark; // big bg year text
 
 // Global domain cho toàn bộ data (tất cả năm, tất cả nước)
 let GLOBAL_GDP_MIN, GLOBAL_GDP_MAX;
@@ -82,6 +83,26 @@ function initBubbleChart(loadedCountries) {
     .attr("class", "y-axis")
     .call(d3.axisLeft(yScale));
 
+  // GRID LINES
+  chartG.append("g")
+    .attr("class", "grid grid-x")
+    .attr("transform", 'translate(0,${innerHeight})')
+    .call(
+      d3.axisBottom(xScale)
+        .ticks(10, "~s")
+        .tickSize(-innerHeight) // vẽ line đi lên
+        .tickFormat("") //Không hiện text
+    );
+
+    chartG.append("g")
+      .attr("class", "grid grid-y")
+      .call(
+        d3.axisLeft(yScale)
+          .ticks(10)
+          .tickSize(-innerWidth)  // vẽ line sang phải 
+          .tickFormat("")
+      );
+
   // 4. Labels
   chartG.append("text")
     .attr("class", "x-label")
@@ -103,6 +124,18 @@ function initBubbleChart(loadedCountries) {
 
   // 6. Gắn slider + play/pause
   initYearControls();
+
+  // Big year in the background 
+  yearWatermark = chartG.append("text")
+    .attr("class", "year-watermark")
+    .attr("x", innerWidth / 2)
+    .attr("y", innerHeight / 2)
+    .attr("text-anchor", "middle")
+    .style("font-size", Math.min(innerWidth, innerHeight) * 0.4)
+    .style("fill", "#e5e5e5")
+    .style("opacity", 0.7)
+    .style("pointer-events", "none")
+    .text(allYears[currentYearIndex]);
 }
 
 // ======= VẼ / UPDATE BUBBLE CHO 1 NĂM =======
@@ -110,6 +143,16 @@ function renderBubble(year) {
   const dataForYear = getDataForYear(countries, year);
 
   d3.select("#yearLabel").text(year);
+
+  if (yearWatermark) {
+    yearWatermark
+      .transition().duration(400)
+      .tween("text", function () {
+        const that = d3.select(this);
+        const i = d3.interpolateNumber(+that.text(), year);
+        return t => that.text(Math.round(i(t)));
+      });
+  }
 
   // JOIN data
   const dots = chartG.selectAll(".dot")
