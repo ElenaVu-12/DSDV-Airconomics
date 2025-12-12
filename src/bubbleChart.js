@@ -84,15 +84,7 @@ function initBubbleChart(loadedCountries) {
     .call(d3.axisLeft(yScale));
 
   // GRID LINES
-  chartG.append("g")
-    .attr("class", "grid grid-x")
-    .attr("transform", `translate(0,${innerHeight})`)
-    .call(
-      d3.axisBottom(xScale)
-        .ticks(10, "~s")
-        .tickSize(-innerHeight) // vẽ line đi lên
-        .tickFormat("") //Không hiện text
-    );
+  
 
     chartG.append("g")
       .attr("class", "grid grid-y")
