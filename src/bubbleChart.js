@@ -12,6 +12,8 @@ let playTimer = null;
 
 let yearWatermark;
 
+let currentRegion = "all";
+
 const margin = { top: 40, right: 40, bottom: 60, left: 80 };
 
 const tooltip = d3.select("#tooltip")
@@ -127,11 +129,22 @@ function initBubbleChart(loadedCountries) {
 
   // Controls
   initYearControls();
+
+  // DROPDOWN REGION
+  d3.select("#regionFilter")
+    .on("change", function() {
+      currentRegion = this.value;
+      renderBubble(allYears[currentYearIndex]);
+    });
 }
 
 // ======= RENDER BUBBLES =======
 function renderBubble(year) {
-  const dataForYear = getDataForYear(countries, year);
+  let dataForYear = getDataForYear(countries, year);
+
+  if (currentRegion !== "all") {
+    dataForYear = dataForYear.filter(d => d.region === currentRegion);
+  }
 
   d3.select("#yearLabel").text(year);
 
@@ -250,9 +263,9 @@ function renderLegend(innerWidth) {
 
   const legendG = chartG.append("g")
     .attr("class", "legend")
-    .attr("transform", `translate(${innerWidth - 170}, 0)`); // góc phải trên
+    .attr("transform", `translate(${innerWidth - 170}, 0)`); // Top-Right Corner
 
-  const items = REGION_COLORS.domain(); // danh sách continent
+  const items = REGION_COLORS.domain(); // Continent list
 
   const item = legendG.selectAll(".legend-item")
     .data(items)
