@@ -1,33 +1,34 @@
 
 // Load and parse data (wide -> objects with year maps)
-async function loadData() {
-  const data = await d3.csv("../data/processed_data.csv");
+async function loadDataLong() {
+  const rows = await d3.csv("../data/processed_data.csv", d => ({
+    code: d.REF_AREA,
+    country: d.REF_AREA_LABEL,
+    region: d.continent,
+    year: +d.year,
+    factor: d.factor,        // "gdp" | "pm25" | "pop"
+    value: +d.value
+  }));
+
+  // group by country
+  const byCountry = d3.group(rows, d => d.country);
 
   const countries = [];
+  for (const [country, arr] of byCountry) {
+    const obj = { country, region: arr[0].region || "Other", gdp: {}, pm25: {}, pop: {} };
 
-  data.forEach(row => {
-    const countryData = {
-      country: row.REF_AREA_LABEL || row.country,
-      region: row.region || row.WB_REGION || row.Region || "Other",
-      gdp: {},
-      pm25: {},
-      pop: {}
-    };
-
-    Object.keys(row).forEach(col => {
-      const match = col.match(/^(gdp|pm25|pop)_(19\d{2}|20\d{2})$/);
-      if (match) {
-        const type = match[1];
-        const year = match[2];
-        countryData[type][year] = +row[col] || 0;
-      }
+    arr.forEach(r => {
+      if (r.factor === "gdp") obj.gdp[r.year] = r.value;
+      if (r.factor === "pm25") obj.pm25[r.year] = r.value;
+      if (r.factor === "pop") obj.pop[r.year] = r.value;
     });
 
-    countries.push(countryData);
-  });
+    countries.push(obj);
+  }
 
   return countries;
 }
+
 
 // return array of plottable points for a year
 function getDataForYear(countries, year) {

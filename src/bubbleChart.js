@@ -237,9 +237,7 @@ function initYearControls() {
 }
 
 // ======= ENTRY POINT =======
-loadData()
-  .then((loadedCountries) => {
-    console.log("Loaded countries:", loadedCountries.length);
-    initBubbleChart(loadedCountries);
-  })
-  .catch(err => console.error("Error init bubble chart:", err));
+loadDataLong()
+  .then(countries => initBubbleChart(countries))
+  .catch(console.error);
+
