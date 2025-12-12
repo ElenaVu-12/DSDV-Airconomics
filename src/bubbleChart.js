@@ -1,5 +1,6 @@
 // bubbleChart.js
 
+
 let svg, chartG, xAxisG, yAxisG;
 let xScale, yScale, rScale;
 let countries = [];
@@ -16,7 +17,7 @@ const margin = { top: 40, right: 40, bottom: 60, left: 80 };
 const tooltip = d3.select("#tooltip")
   .style("position", "absolute")
   .style("pointer-events", "none")
-  .style("opacity", 0);
+  
 
 // Color by region
 let REGION_COLORS;
@@ -110,11 +111,16 @@ function initBubbleChart(loadedCountries) {
     .attr("x", innerWidth / 2)
     .attr("y", innerHeight / 2)
     .attr("text-anchor", "middle")
+    .attr("dominant-baseline", "middle")
     .style("font-size", Math.min(innerWidth, innerHeight) * 0.4)
     .style("fill", "#e5e5e5")
     .style("opacity", 0.6)
     .style("pointer-events", "none")
     .text(allYears[currentYearIndex]);
+
+  // renderLegend
+  renderLegend(innerWidth);
+
 
   // First render
   renderBubble(allYears[currentYearIndex]);
@@ -132,6 +138,8 @@ function renderBubble(year) {
   // update watermark year
   if (yearWatermark) {
     yearWatermark
+      .attr("x", (svg.attr("width") - margin.left - margin.right) / 2)
+      .attr("y", (svg.attr("height") - margin.top - margin.bottom) / 2)
       .transition().duration(300)
       .tween("text", function () {
         const that = d3.select(this);
@@ -140,56 +148,56 @@ function renderBubble(year) {
       });
   }
 
-  const dots = chartG.selectAll(".dot")
-    .data(dataForYear, d => d.country);
+  chartG.selectAll(".dot")
+  .data(dataForYear, d => d.country)
+  .join(
+    enter => enter.append("circle")
+      .attr("class", "dot")
+      .attr("cx", d => xScale(d.gdp || 1))
+      .attr("cy", d => yScale(d.pm25 || 0))
+      .attr("r", 0)
+      .attr("fill", d => REGION_COLORS(d.region || "Other"))
+      .attr("stroke", "white")
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.85)
+      .attr("pointer-events", "all")
 
-  const dotsEnter = dots.enter().append("circle")
-    .attr("class", "dot")
-    .attr("cx", d => xScale(d.gdp || 1))
-    .attr("cy", d => yScale(d.pm25 || 0))
-    .attr("r", 0)
-    .attr("fill", d => REGION_COLORS(d.region || "Other"))
-    .attr("stroke", "white")
-    .attr("stroke-width", 1)
-    .attr("opacity", 0.85);
+      // TOOLTIP (ENTER)
+      .on("mousemove", (event, d) => {
+        tooltip
+          .classed("show", true)
+          .style("left", (event.pageX + 14) + "px")
+          .style("top", (event.pageY - 10) + "px")
+          .html(`
+            <div class="tt-title">${d.country}</div>
+            <div class="tt-sub">Region: ${d.region} • Year: ${year}</div>
+            <div class="tt-grid">
+              <div class="tt-k">PM2.5</div><div class="tt-v">${d.pm25.toFixed(1)} µg/m³</div>
+              <div class="tt-k">GDP pc</div><div class="tt-v">${d3.format("$,.0f")(d.gdp)}</div>
+              <div class="tt-k">Population</div><div class="tt-v">${d3.format(",")(d.population)}</div>
+            </div>
+          `);
+      })
+      .on("mouseleave", () => tooltip.classed("show", false))
+      .call(enter => enter
+        .transition().duration(500)
+        .attr("r", d => rScale(d.population || 0))
+      ),
 
-  const dotsMerged = dotsEnter.merge(dots);
+    update => update
+      .call(update => update
+        .transition().duration(500)
+        .attr("cx", d => xScale(d.gdp || 1))
+        .attr("cy", d => yScale(d.pm25 || 0))
+        .attr("r", d => rScale(d.population || 0))
+        .attr("fill", d => REGION_COLORS(d.region || "Other"))
+      ),
 
-  // Tooltip handler rebind every render (year always correct)
-  dotsMerged
-    .on("mousemove", (event, d) => {
-      tooltip
-        .style("opacity", 1)
-        .style("left", (event.pageX + 12) + "px")
-        .style("top", (event.pageY + 12) + "px")
-        .html(
-          `<b>${d.country}</b><br/>
-           Region: ${d.region}<br/>
-           PM2.5: ${d.pm25.toFixed(1)} µg/m³<br/>
-           GDP pc: ${d3.format(",")(d.gdp)} USD<br/>
-           Population: ${d3.format(",")(d.population)}<br/>
-           Year: ${year}`
-        );
-    })
-    .on("mouseleave", () => tooltip.style("opacity", 0));
-
-  // Animate enter + update
-  dotsEnter
-    .transition().duration(500)
-    .attr("r", d => rScale(d.population || 0));
-
-  dotsMerged
-    .transition().duration(500)
-    .attr("cx", d => xScale(d.gdp || 1))
-    .attr("cy", d => yScale(d.pm25 || 0))
-    .attr("r", d => rScale(d.population || 0))
-    .attr("fill", d => REGION_COLORS(d.region || "Other"));
-
-  // Exit
-  dots.exit()
-    .transition().duration(300)
-    .attr("r", 0)
-    .remove();
+    exit => exit
+      .transition().duration(300)
+      .attr("r", 0)
+      .remove()
+  );
 }
 
 // ======= SLIDER + PLAY/PAUSE =======
@@ -206,7 +214,7 @@ function initYearControls() {
       const y = +event.target.value;
       currentYearIndex = allYears.indexOf(y);
       renderBubble(y);
-      tooltip.style("opacity", 0); // avoid stale tooltip
+      tooltip.classed("show", false); // avoid stale tooltip
     });
 
   playBtn.on("click", () => {
@@ -220,7 +228,7 @@ function initYearControls() {
           const y = allYears[currentYearIndex];
           slider.property("value", y);
           renderBubble(y);
-          tooltip.style("opacity", 0);
+          tooltip.classed("show", false);
         } else {
           clearInterval(playTimer);
           isPlaying = false;
@@ -235,6 +243,38 @@ function initYearControls() {
     }
   });
 }
+
+function renderLegend(innerWidth) {
+ 
+  chartG.selectAll(".legend").remove();
+
+  const legendG = chartG.append("g")
+    .attr("class", "legend")
+    .attr("transform", `translate(${innerWidth - 170}, 0)`); // góc phải trên
+
+  const items = REGION_COLORS.domain(); // danh sách continent
+
+  const item = legendG.selectAll(".legend-item")
+    .data(items)
+    .enter()
+    .append("g")
+    .attr("class", "legend-item")
+    .attr("transform", (d, i) => `translate(0, ${i * 18})`);
+
+  item.append("circle")
+    .attr("r", 6)
+    .attr("cx", 0)
+    .attr("cy", 0)
+    .attr("fill", d => REGION_COLORS(d))
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1);
+
+  item.append("text")
+    .attr("x", 12)
+    .attr("y", 4)
+    .text(d => d);
+}
+
 
 // ======= ENTRY POINT =======
 loadDataLong()
