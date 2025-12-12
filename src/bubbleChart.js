@@ -86,7 +86,7 @@ function initBubbleChart(loadedCountries) {
   // GRID LINES
   chartG.append("g")
     .attr("class", "grid grid-x")
-    .attr("transform", 'translate(0,${innerHeight})')
+    .attr("transform", `translate(0,${innerHeight})`)
     .call(
       d3.axisBottom(xScale)
         .ticks(10, "~s")
@@ -165,7 +165,7 @@ function renderBubble(year) {
     .attr("cy", d => yScale(d.pm25 || 0))
     .attr("r", 0)
     .attr("fill", "#4e79a7")  // tạm 1 màu, sau có thể dùng colorScale(region)
-    .attr("opacity", 0.8)
+    .attr("opacity", 0.8);
 
     // Gộp ENTER + UPDATE
     const dotsMerged = dotsEnter.merge(dots);
