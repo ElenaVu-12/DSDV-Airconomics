@@ -295,4 +295,3 @@ function renderLegend(innerWidth) {
 loadDataLong()
   .then(countries => initBubbleChart(countries))
   .catch(console.error);
-
