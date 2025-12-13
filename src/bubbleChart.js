@@ -6,6 +6,7 @@ let xScale, yScale, rScale;
 let countries = [];
 let allYears = [];
 let currentYearIndex = 0;
+let currentYear = null;
 
 let isPlaying = false;
 let playTimer = null;
@@ -59,7 +60,7 @@ function initBubbleChart(loadedCountries) {
   const regions = Array.from(new Set(countries.map(c => c.region || "Other")));
   REGION_COLORS = d3.scaleOrdinal()
     .domain(regions)
-    .range(["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7"]);
+    .range(["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f"]);
 
   // --- Axes ---
   xAxisG = chartG.append("g")
@@ -140,6 +141,7 @@ function initBubbleChart(loadedCountries) {
 
 // ======= RENDER BUBBLES =======
 function renderBubble(year) {
+  currentYear = year; // Update current year
   let dataForYear = getDataForYear(countries, year);
 
   if (currentRegion !== "all") {
@@ -183,7 +185,7 @@ function renderBubble(year) {
           .style("top", (event.pageY - 10) + "px")
           .html(`
             <div class="tt-title">${d.country}</div>
-            <div class="tt-sub">Region: ${d.region} • Year: ${year}</div>
+            <div class="tt-sub">Region: ${d.region} • Year: ${currentYear}</div>
             <div class="tt-grid">
               <div class="tt-k">PM2.5</div><div class="tt-v">${d.pm25.toFixed(1)} µg/m³</div>
               <div class="tt-k">GDP pc</div><div class="tt-v">${d3.format("$,.0f")(d.gdp)}</div>
