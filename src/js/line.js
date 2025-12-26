@@ -322,14 +322,14 @@ window.initLineChart = async function () {
                 .attr("stroke-width", 2)
                 .attr("d", lineGen);
 
-            group.selectAll("circle")
-                .data(countryData.filter(d => d.value !== ""))
-                .enter()
-                .append("circle")
-                .attr("cx", d => x(+d.year))
-                .attr("cy", d => y(+d.value))
-                .attr("r", 4)
-                .attr("fill", countryColorMap[country]);
+            // group.selectAll("circle")
+            //     .data(countryData.filter(d => d.value !== ""))
+            //     .enter()
+            //     .append("circle")
+            //     .attr("cx", d => x(+d.year))
+            //     .attr("cy", d => y(+d.value))
+            //     .attr("r", 4)
+            //     .attr("fill", countryColorMap[country]);
         });
 
         svg.selectAll(".overlay").remove();
